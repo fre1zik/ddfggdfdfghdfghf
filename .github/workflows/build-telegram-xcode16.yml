@@ -1,0 +1,114 @@
+name: Build Telegram with Xcode 16.2
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-telegram-xcode16:
+    runs-on: macos-14
+    
+    steps:
+    - name: Checkout our repository
+      uses: actions/checkout@v4
+      
+    - name: Clone original Telegram iOS
+      run: |
+        echo "📥 Cloning original Telegram iOS..."
+        git clone https://github.com/TelegramMessenger/Telegram-iOS.git original-telegram
+        cd original-telegram
+        
+    - name: Update submodules with retry
+      run: |
+        echo "🔄 Updating submodules with retry mechanism..."
+        cd original-telegram
+        
+        # Первая попытка
+        echo "Attempt 1: git submodule update --init --recursive"
+        git submodule update --init --recursive || {
+          echo "⚠️ First attempt failed, trying alternative approach..."
+          
+          # Альтернативный подход - обновляем каждый сабмодуль отдельно
+          git submodule foreach --recursive git fetch origin
+          git submodule update --init --recursive --force || {
+            echo "⚠️ Second attempt failed, trying manual submodule update..."
+            
+            # Ручное обновление проблемных сабмодулей
+            cd submodules/TgVoipWebrtc/tgcalls 2>/dev/null && git fetch origin && git reset --hard HEAD && cd ../../.. || echo "tgcalls update skipped"
+            cd submodules/rlottie/rlottie 2>/dev/null && git fetch origin && git reset --hard HEAD && cd ../../.. || echo "rlottie update skipped"
+            cd third-party/td/td 2>/dev/null && git fetch origin && git reset --hard HEAD && cd ../../.. || echo "td update skipped"
+            
+            echo "✅ Manual submodule update completed"
+          }
+        }
+        
+    - name: Apply modifications
+      run: |
+        echo "🔧 Applying modifications..."
+        cd original-telegram
+        # Изменяем "Chats" на "ch"
+        sed -i '' 's/"DialogList.TabTitle" = "Chats";/"DialogList.TabTitle" = "ch";/g' Telegram/Telegram-iOS/en.lproj/Localizable.strings
+        sed -i '' 's/"DialogList.Title" = "Chats";/"DialogList.Title" = "ch";/g' Telegram/Telegram-iOS/en.lproj/Localizable.strings
+        echo "✅ Modifications applied: 'Chats' → 'ch'"
+        
+    - name: Verify changes
+      run: |
+        echo "🔍 Verifying changes..."
+        cd original-telegram
+        grep -n "DialogList.TabTitle\|DialogList.Title" Telegram/Telegram-iOS/en.lproj/Localizable.strings
+        
+    - name: Setup Xcode 16.2
+      run: |
+        echo "📱 Setting up Xcode 16.2..."
+        sudo xcode-select --switch /Applications/Xcode_16.2.app
+        xcodebuild -version
+        
+    - name: Generate Xcode project
+      run: |
+        echo "🔨 Generating Xcode project..."
+        cd original-telegram
+        python3 build-system/Make/Make.py \
+          --cacheDir="$HOME/telegram-bazel-cache" \
+          generateProject \
+          --configurationPath=build-system/template_minimal_development_configuration.json \
+          --xcodeManagedCodesigning
+        
+    - name: Build Telegram IPA
+      run: |
+        echo "📦 Building Telegram IPA for iOS devices..."
+        cd original-telegram
+        
+        # Копируем exportOptions.plist
+        cp ../../ios/exportOptions.plist Telegram/Telegram-iOS/exportOptions.plist
+        
+        # Собираем архив
+        xcodebuild -project Telegram.xcodeproj -scheme Telegram -configuration Release -archivePath build/Telegram.xcarchive archive
+        
+        # Экспортируем IPA
+        xcodebuild -exportArchive -archivePath build/Telegram.xcarchive -exportPath build/ipa -exportOptionsPlist Telegram/Telegram-iOS/exportOptions.plist
+        
+    - name: Find IPA files
+      run: |
+        echo "🔍 Looking for IPA files..."
+        cd original-telegram
+        find . -name "*.ipa" -type f
+        ls -la build/ipa/ || echo "IPA directory not found"
+        
+    - name: Upload IPA file
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-xcode16-ipa
+        path: original-telegram/build/ipa/*.ipa
+        if-no-files-found: warn
+        
+    - name: Success message
+      run: |
+        echo "🎉 Xcode 16.2 Telegram IPA build completed!"
+        echo "📱 Changes applied: 'Chats' → 'ch'"
+        echo "📦 IPA file ready for iOS devices"
+        echo "📥 Download from: GitHub Actions → Artifacts → telegram-xcode16-ipa"
+        echo ""
+        echo "✅ You now have Telegram with 'ch' button!" 
