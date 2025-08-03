@@ -1,0 +1,88 @@
+name: Build App to IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.8'
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Build iOS app
+      run: |
+        echo "📱 Building iOS app..."
+        flutter build ios --debug --no-codesign
+        echo "✅ iOS app build completed!"
+        
+    - name: Find .app file
+      run: |
+        echo "🔍 Looking for .app file..."
+        find build/ios -name "*.app" -type d
+        
+    - name: Create IPA from .app
+      run: |
+        echo "📦 Creating IPA from .app file..."
+        cd build/ios/Debug-iphoneos
+        if [ -d "Runner.app" ]; then
+          echo "Found Runner.app, creating IPA..."
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r telegram-client.ipa Payload
+          echo "✅ IPA created: telegram-client.ipa"
+          ls -la *.ipa
+        else
+          echo "Runner.app not found"
+          ls -la
+        fi
+        
+    - name: Upload .app file
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-app-file
+        path: build/ios/Debug-iphoneos/Runner.app
+        if-no-files-found: warn
+        
+    - name: Upload IPA file
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-client-ipa
+        path: build/ios/Debug-iphoneos/telegram-client.ipa
+        if-no-files-found: warn
+        
+    - name: Upload all build files
+      uses: actions/upload-artifact@v4
+      with:
+        name: all-ios-build
+        path: build/ios/
+        if-no-files-found: warn
+        
+    - name: Success message
+      run: |
+        echo "🎉 iOS build completed!"
+        echo "📱 Available files:"
+        echo "   - ios-app-file: .app file for iOS"
+        echo "   - telegram-client-ipa: IPA file (if created)"
+        echo "   - all-ios-build: All build files"
+        echo ""
+        echo "📥 Download from: GitHub Actions → Artifacts"
+        echo ""
+        echo "📋 To install on device:"
+        echo "   1. Download the .app file"
+        echo "   2. Use AltStore or similar tool to install"
+        echo "   3. Or convert .app to .ipa manually" 
