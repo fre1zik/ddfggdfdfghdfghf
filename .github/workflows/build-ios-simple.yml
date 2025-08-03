@@ -1,0 +1,70 @@
+name: Build iOS IPA (Simple)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.8'
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Build iOS IPA (Development)
+      run: |
+        flutter build ipa \
+          --debug \
+          --no-codesign
+          
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-client-ipa-debug
+        path: build/ios/ipa/*.ipa
+        
+    - name: Upload to server via SSH
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        source: "build/ios/ipa/*.ipa"
+        target: "/home/${{ secrets.SSH_USERNAME }}/telegram-client/"
+        strip_components: 3
+        
+    - name: Create download script
+      run: |
+        echo '#!/bin/bash' > download-ipa.sh
+        echo 'echo "📱 Downloading Telegram Client IPA..."' >> download-ipa.sh
+        echo 'scp -P ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USERNAME }}/telegram-client/*.ipa ./' >> download-ipa.sh
+        echo 'echo "✅ IPA downloaded successfully!"' >> download-ipa.sh
+        echo 'echo "📁 File location: $(pwd)/*.ipa"' >> download-ipa.sh
+        
+    - name: Upload download script
+      uses: actions/upload-artifact@v4
+      with:
+        name: download-script
+        path: download-ipa.sh
+        
+    - name: Notify success
+      if: success()
+      run: |
+        echo "✅ iOS build completed successfully!"
+        echo "📱 IPA file uploaded to server"
+        echo "📍 Server path: /home/${{ secrets.SSH_USERNAME }}/telegram-client/"
+        echo "🔑 Download command: scp -P ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USERNAME }}/telegram-client/*.ipa ./" 

@@ -1,0 +1,70 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.8'
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Setup iOS signing
+      uses: apple-actions/import-codesigning-certs@v1
+      with:
+        p12-file-base64: ${{ secrets.P12_BASE64 }}
+        p12-password: ${{ secrets.P12_PASSWORD }}
+        
+    - name: Setup provisioning profile
+      uses: apple-actions/download-provisioning-profiles@v1
+      with:
+        bundle-id: 'com.telegram.client'
+        profile-type: 'IOS_APP_STORE'
+        issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+        api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+        api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        
+    - name: Build iOS IPA
+      run: |
+        flutter build ipa \
+          --release \
+          --export-options-plist=ios/exportOptions.plist
+          
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-client-ipa
+        path: build/ios/ipa/*.ipa
+        
+    - name: Upload to server via SSH
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        source: "build/ios/ipa/*.ipa"
+        target: "/home/${{ secrets.SSH_USERNAME }}/telegram-client/"
+        strip_components: 3
+        
+    - name: Notify success
+      if: success()
+      run: |
+        echo "✅ iOS build completed successfully!"
+        echo "📱 IPA file uploaded to server"
+        echo "📍 Path: /home/${{ secrets.SSH_USERNAME }}/telegram-client/" 
