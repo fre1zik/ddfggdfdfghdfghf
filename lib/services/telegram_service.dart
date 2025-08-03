@@ -89,13 +89,19 @@ class TelegramService {
     }
 
     final data = await _makeRequest('sendMessage', body: params);
-    return TelegramMessage.fromJson(data);
+    if (data is Map<String, dynamic>) {
+      return TelegramMessage.fromJson(data);
+    }
+    throw Exception('Invalid response format');
   }
 
   // Get chat information
   Future<TelegramChat> getChat(int chatId) async {
     final data = await _makeRequest('getChat', body: {'chat_id': chatId.toString()});
-    return TelegramChat.fromJson(data);
+    if (data is Map<String, dynamic>) {
+      return TelegramChat.fromJson(data);
+    }
+    throw Exception('Invalid response format');
   }
 
   // Get chat history
@@ -109,7 +115,21 @@ class TelegramService {
     final data = await _makeRequest('getChatHistory', body: params);
     
     if (data is List) {
-      return data.map((message) => TelegramMessage.fromJson(message)).toList();
+      final messages = <TelegramMessage>[];
+      
+      for (int i = 0; i < data.length; i++) {
+        try {
+          final message = data[i];
+          if (message is Map<String, dynamic>) {
+            messages.add(TelegramMessage.fromJson(message));
+          }
+        } catch (e) {
+          print('Error parsing message: $e');
+          continue;
+        }
+      }
+      
+      return messages;
     }
     
     return [];
@@ -125,7 +145,10 @@ class TelegramService {
     if (caption != null) params['caption'] = caption;
 
     final data = await _makeRequest('sendPhoto', body: params);
-    return TelegramMessage.fromJson(data);
+    if (data is Map<String, dynamic>) {
+      return TelegramMessage.fromJson(data);
+    }
+    throw Exception('Invalid response format');
   }
 
   // Send document
@@ -138,7 +161,10 @@ class TelegramService {
     if (caption != null) params['caption'] = caption;
 
     final data = await _makeRequest('sendDocument', body: params);
-    return TelegramMessage.fromJson(data);
+    if (data is Map<String, dynamic>) {
+      return TelegramMessage.fromJson(data);
+    }
+    throw Exception('Invalid response format');
   }
 
   // Delete message
