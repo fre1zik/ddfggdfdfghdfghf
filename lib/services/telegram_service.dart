@@ -57,8 +57,9 @@ class TelegramService {
     if (data is List) {
       final messages = <TelegramMessage>[];
       
-      for (final update in data) {
+      for (int i = 0; i < data.length; i++) {
         try {
+          final update = data[i];
           if (update is Map<String, dynamic> && 
               update['message'] != null && 
               update['message'] is Map<String, dynamic>) {
