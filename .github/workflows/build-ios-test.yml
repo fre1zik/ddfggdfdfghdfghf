@@ -1,0 +1,48 @@
+name: Build iOS IPA (Test)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.8'
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Build iOS IPA (Development)
+      run: |
+        flutter build ipa \
+          --debug \
+          --no-codesign
+          
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-client-ipa
+        path: build/ios/ipa/*.ipa
+        
+    - name: Show build info
+      run: |
+        echo "✅ iOS build completed successfully!"
+        echo "📱 IPA file available as artifact"
+        echo "📁 Download from GitHub Actions → Artifacts"
+        echo "🔧 To enable SSH upload, add secrets:"
+        echo "   - SSH_HOST"
+        echo "   - SSH_USERNAME" 
+        echo "   - SSH_PRIVATE_KEY"
+        echo "   - SSH_PORT" 
