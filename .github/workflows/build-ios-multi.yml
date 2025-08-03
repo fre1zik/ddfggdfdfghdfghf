@@ -1,0 +1,72 @@
+name: Build iOS Multi-Platform
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.8'
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Build for simulator
+      run: |
+        echo "📱 Building for iOS Simulator..."
+        flutter build ios --debug --no-codesign --simulator
+        echo "✅ Simulator build completed!"
+        
+    - name: Upload simulator build
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-simulator-build
+        path: build/ios/
+        if-no-files-found: warn
+        
+    - name: Try to build IPA
+      run: |
+        echo "📦 Trying to build IPA..."
+        flutter build ipa --debug || echo "IPA build failed, but that's okay"
+        
+    - name: Find all build files
+      run: |
+        echo "🔍 All build files:"
+        find build/ -type f -name "*.app" -o -name "*.ipa" -o -name "*.dSYM" || echo "No build files found"
+        
+    - name: Upload IPA if exists
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-ipa-file
+        path: build/ios/ipa/*.ipa
+        if-no-files-found: ignore
+        
+    - name: Upload all iOS files
+      uses: actions/upload-artifact@v4
+      with:
+        name: all-ios-files
+        path: build/ios/
+        if-no-files-found: warn
+        
+    - name: Success message
+      run: |
+        echo "🎉 iOS build process completed!"
+        echo "📱 Available artifacts:"
+        echo "   - ios-simulator-build: For iOS Simulator"
+        echo "   - ios-ipa-file: IPA file (if created)"
+        echo "   - all-ios-files: All iOS build files"
+        echo ""
+        echo "📥 Download from: GitHub Actions → Artifacts" 

@@ -24,30 +24,49 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
       
+    - name: Setup iOS signing
+      run: |
+        echo "🔑 Setting up iOS signing..."
+        security create-keychain -p "" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "" build.keychain
+        security set-keychain-settings build.keychain
+        
     - name: Build IPA file
       run: |
         echo "🔨 Building IPA file..."
-        flutter build ipa --debug --no-codesign
+        flutter build ipa --debug
         echo "✅ IPA build completed!"
         
-    - name: List build artifacts
+    - name: List build directory
       run: |
-        echo "📁 Build artifacts:"
-        ls -la build/ios/ipa/
+        echo "📁 Build directory contents:"
+        ls -la build/
+        echo ""
+        echo "📁 iOS build directory:"
+        ls -la build/ios/ || echo "iOS directory not found"
+        
+    - name: Find IPA files
+      run: |
+        echo "🔍 Searching for IPA files..."
+        find build/ -name "*.ipa" -type f || echo "No IPA files found"
         
     - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
       with:
         name: telegram-client-ipa
         path: build/ios/ipa/*.ipa
+        if-no-files-found: warn
+        
+    - name: Upload all build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: all-build-files
+        path: build/
+        if-no-files-found: warn
         
     - name: Success message
       run: |
-        echo "🎉 IPA file built successfully!"
-        echo "📱 File: telegram-client-ipa"
-        echo "📥 Download from: GitHub Actions → Artifacts"
-        echo ""
-        echo "📋 Installation:"
-        echo "   1. Download the IPA file"
-        echo "   2. Install via iTunes/Finder or AltStore"
-        echo "   3. Trust the developer in Settings → General → Device Management" 
+        echo "🎉 Build process completed!"
+        echo "📱 Check artifacts for IPA file"
+        echo "📥 Download from: GitHub Actions → Artifacts" 
