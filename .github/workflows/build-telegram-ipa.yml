@@ -21,29 +21,27 @@ jobs:
         git clone https://github.com/TelegramMessenger/Telegram-iOS.git original-telegram
         cd original-telegram
         
-    - name: Update submodules with retry
+    - name: Update submodules with aggressive retry
       run: |
-        echo "🔄 Updating submodules with retry mechanism..."
+        echo "🔄 Updating submodules with aggressive retry mechanism..."
         cd original-telegram
         
-        # Первая попытка
-        echo "Attempt 1: git submodule update --init --recursive"
-        git submodule update --init --recursive || {
-          echo "⚠️ First attempt failed, trying alternative approach..."
-          
-          # Альтернативный подход - обновляем каждый сабмодуль отдельно
-          git submodule foreach --recursive git fetch origin
-          git submodule update --init --recursive --force || {
-            echo "⚠️ Second attempt failed, trying manual submodule update..."
-            
-            # Ручное обновление проблемных сабмодулей
-            cd submodules/TgVoipWebrtc/tgcalls 2>/dev/null && git fetch origin && git reset --hard HEAD && cd ../../.. || echo "tgcalls update skipped"
-            cd submodules/rlottie/rlottie 2>/dev/null && git fetch origin && git reset --hard HEAD && cd ../../.. || echo "rlottie update skipped"
-            cd third-party/td/td 2>/dev/null && git fetch origin && git reset --hard HEAD && cd ../../.. || echo "td update skipped"
-            
-            echo "✅ Manual submodule update completed"
-          }
-        }
+        # Отключаем проблемные сабмодули
+        echo "⚠️ Disabling problematic submodules..."
+        git config submodule.submodules/TgVoipWebrtc/tgcalls.update none || echo "tgcalls config failed"
+        git config submodule.submodules/rlottie/rlottie.update none || echo "rlottie config failed"
+        git config submodule.third-party/webrtc/webrtc.update none || echo "webrtc config failed"
+        
+        # Первая попытка - только основные сабмодули
+        echo "Attempt 1: Basic submodules only"
+        git submodule update --init --recursive build-system/bazel-rules || echo "bazel-rules failed"
+        git submodule update --init --recursive submodules/LottieCpp || echo "LottieCpp failed"
+        git submodule update --init --recursive third-party/XcodeGen || echo "XcodeGen failed"
+        git submodule update --init --recursive third-party/dav1d || echo "dav1d failed"
+        git submodule update --init --recursive third-party/libvpx || echo "libvpx failed"
+        git submodule update --init --recursive third-party/td || echo "td failed"
+        
+        echo "✅ Basic submodules updated"
         
     - name: Apply modifications
       run: |
