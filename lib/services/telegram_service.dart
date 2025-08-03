@@ -69,7 +69,7 @@ class TelegramService {
   // Send message
   Future<TelegramMessage> sendMessage(int chatId, String text, {int? replyToMessageId}) async {
     final params = <String, dynamic>{
-      'chat_id': chatId,
+      'chat_id': chatId.toString(),
       'text': text,
     };
     
@@ -83,14 +83,14 @@ class TelegramService {
 
   // Get chat information
   Future<TelegramChat> getChat(int chatId) async {
-    final data = await _makeRequest('getChat', body: {'chat_id': chatId});
+    final data = await _makeRequest('getChat', body: {'chat_id': chatId.toString()});
     return TelegramChat.fromJson(data);
   }
 
   // Get chat history
   Future<List<TelegramMessage>> getChatHistory(int chatId, {int? limit}) async {
     final params = <String, dynamic>{
-      'chat_id': chatId,
+      'chat_id': chatId.toString(),
     };
     
     if (limit != null) params['limit'] = limit;
@@ -107,7 +107,7 @@ class TelegramService {
   // Send photo
   Future<TelegramMessage> sendPhoto(int chatId, String photo, {String? caption}) async {
     final params = <String, dynamic>{
-      'chat_id': chatId,
+      'chat_id': chatId.toString(),
       'photo': photo,
     };
     
@@ -120,7 +120,7 @@ class TelegramService {
   // Send document
   Future<TelegramMessage> sendDocument(int chatId, String document, {String? caption}) async {
     final params = <String, dynamic>{
-      'chat_id': chatId,
+      'chat_id': chatId.toString(),
       'document': document,
     };
     
@@ -134,7 +134,7 @@ class TelegramService {
   Future<bool> deleteMessage(int chatId, int messageId) async {
     try {
       await _makeRequest('deleteMessage', body: {
-        'chat_id': chatId,
+        'chat_id': chatId.toString(),
         'message_id': messageId,
       });
       return true;

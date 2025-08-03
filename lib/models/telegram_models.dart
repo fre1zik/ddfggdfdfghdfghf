@@ -18,7 +18,7 @@ class TelegramUser {
 
   factory TelegramUser.fromJson(Map<String, dynamic> json) {
     return TelegramUser(
-      id: json['id'],
+      id: json['id'] is String ? int.parse(json['id']) : json['id'],
       firstName: json['first_name'],
       lastName: json['last_name'],
       username: json['username'],
@@ -58,7 +58,7 @@ class TelegramChat {
 
   factory TelegramChat.fromJson(Map<String, dynamic> json) {
     return TelegramChat(
-      id: json['id'],
+      id: json['id'] is String ? int.parse(json['id']) : json['id'],
       type: json['type'],
       title: json['title'],
       username: json['username'],
