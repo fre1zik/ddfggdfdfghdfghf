@@ -24,17 +24,36 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
       
+    - name: Setup iOS simulator
+      run: |
+        xcrun simctl list devices
+        xcrun simctl boot "iPhone 15"
+        
+    - name: Build iOS for simulator
+      run: |
+        flutter build ios \
+          --debug \
+          --no-codesign \
+          --simulator
+          
     - name: Build iOS IPA (Development)
       run: |
         flutter build ipa \
           --debug \
-          --no-codesign
+          --no-codesign \
+          --export-options-plist=ios/exportOptions.plist
           
     - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
       with:
         name: telegram-client-ipa
         path: build/ios/ipa/*.ipa
+        
+    - name: Upload iOS build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-client-ios-build
+        path: build/ios/
         
     - name: Show build info
       run: |
@@ -45,4 +64,8 @@ jobs:
         echo "   - SSH_HOST"
         echo "   - SSH_USERNAME" 
         echo "   - SSH_PRIVATE_KEY"
-        echo "   - SSH_PORT" 
+        echo "   - SSH_PORT"
+        echo ""
+        echo "📋 Build artifacts:"
+        echo "   - telegram-client-ipa: IPA file"
+        echo "   - telegram-client-ios-build: Full iOS build" 

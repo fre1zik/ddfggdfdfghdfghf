@@ -1,0 +1,52 @@
+name: Build iOS Simulator
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.8'
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: List available simulators
+      run: xcrun simctl list devices
+      
+    - name: Build iOS for simulator
+      run: |
+        flutter build ios \
+          --debug \
+          --no-codesign \
+          --simulator
+          
+    - name: Upload iOS build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-client-ios-simulator
+        path: build/ios/
+        
+    - name: Show build info
+      run: |
+        echo "✅ iOS Simulator build completed successfully!"
+        echo "📱 iOS build available as artifact"
+        echo "📁 Download from GitHub Actions → Artifacts"
+        echo ""
+        echo "📋 To run on simulator:"
+        echo "   1. Download the artifact"
+        echo "   2. Extract to local machine"
+        echo "   3. Run: flutter run -d ios" 
