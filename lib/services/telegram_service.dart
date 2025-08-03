@@ -56,10 +56,10 @@ class TelegramService {
     
     if (data is List) {
       return data.map((update) {
-        if (update['message'] != null) {
+        if (update['message'] != null && update['message'] is Map<String, dynamic>) {
           return TelegramMessage.fromJson(update['message']);
         }
-        throw Exception('Update does not contain message');
+        throw Exception('Update does not contain valid message');
       }).toList();
     }
     

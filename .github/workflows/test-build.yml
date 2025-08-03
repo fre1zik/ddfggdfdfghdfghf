@@ -1,0 +1,37 @@
+name: Test Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.8'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Analyze code
+      run: flutter analyze
+      
+    - name: Show file content
+      run: |
+        echo "=== Line 59 of telegram_service.dart ==="
+        sed -n '59p' lib/services/telegram_service.dart
+        echo ""
+        echo "=== Lines 55-65 ==="
+        sed -n '55,65p' lib/services/telegram_service.dart
+        echo ""
+        echo "=== All chat_id occurrences ==="
+        grep -n "chat_id" lib/services/telegram_service.dart
+      
+    - name: Test build
+      run: flutter build ios --debug --no-codesign --simulator 
