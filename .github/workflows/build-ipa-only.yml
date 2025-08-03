@@ -1,0 +1,53 @@
+name: Build IPA Only
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.32.8'
+        channel: 'stable'
+        
+    - name: Install dependencies
+      run: flutter pub get
+      
+    - name: Build IPA file
+      run: |
+        echo "🔨 Building IPA file..."
+        flutter build ipa --debug --no-codesign
+        echo "✅ IPA build completed!"
+        
+    - name: List build artifacts
+      run: |
+        echo "📁 Build artifacts:"
+        ls -la build/ios/ipa/
+        
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-client-ipa
+        path: build/ios/ipa/*.ipa
+        
+    - name: Success message
+      run: |
+        echo "🎉 IPA file built successfully!"
+        echo "📱 File: telegram-client-ipa"
+        echo "📥 Download from: GitHub Actions → Artifacts"
+        echo ""
+        echo "📋 Installation:"
+        echo "   1. Download the IPA file"
+        echo "   2. Install via iTunes/Finder or AltStore"
+        echo "   3. Trust the developer in Settings → General → Device Management" 

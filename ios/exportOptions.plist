@@ -16,5 +16,10 @@
 	<false/>
 	<key>thinning</key>
 	<string>&lt;none&gt;</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.example.telegramClient</key>
+		<string>iOS Team Provisioning Profile: com.example.telegramClient</string>
+	</dict>
 </dict>
 </plist> 
